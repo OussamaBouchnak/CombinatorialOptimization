@@ -6,7 +6,7 @@ def parse_instances(filename):
     i = 0  # Start from the first line
     
     # Get the number of instances from the first line
-    num_instances = int(lines[0].strip())
+    int(lines[0].strip())  # Read the number of instances but do not store it
     i += 1
     
     while i < len(lines):
@@ -30,24 +30,22 @@ def parse_instances(filename):
 def parse_lower_bounds(filename):
     """
     Parse the lower bounds file to extract instance identifiers and lower bounds.
-    Format: n m class_id instance_id lower_bound algo time
+    Each line format: n m class_id instance_id lower_bound algo time
     """
     bounds = {}
-    
     try:
         with open(filename, 'r') as f:
             for line in f:
                 parts = line.strip().split()
-                if len(parts) >= 5:  # Ensure we have at least 5 values
+                if len(parts) >= 5:
                     n, m, class_id, instance_id = map(int, parts[:4])
                     lower_bound = int(parts[4])
-                    # Create a key using class_id and instance_id
                     key = (class_id, instance_id)
                     bounds[key] = lower_bound
     except Exception as e:
         print(f"Error parsing lower bounds file: {e}")
-        
     return bounds
+
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -56,7 +54,7 @@ import numpy as np
 def lpt_schedule_instance(instance):
     job_durations = instance["jobs"]
     mold_assignments = instance["machines"]
-    nb_jobs, nb_molds, class_id, instance_id = instance["header"]
+    nb_jobs, nb_molds, _, _ = instance["header"]  # Ignore unused variables class_id and instance_id
     nb_machines = 2
 
     jobs = sorted(
@@ -125,11 +123,11 @@ def plot_gantt_chart(schedule, title):
     job_ids = {task[0] for task in all_tasks}
     cmap = plt.get_cmap('tab20', len(job_ids))
 
-    fig, ax = plt.subplots(figsize=(14, 6))
+    _, ax = plt.subplots(figsize=(14, 6))  # Ignore unused variable fig
     
     # Custom label positioning logic
-    def can_fit_label(start, duration, text):
-        text_width = duration * 0.8  # Allow 80% of block width for text
+    def can_fit_label(_, duration, text):  # Ignore unused variable start
+        # Removed unused variable text_width
         required_width = len(text) * 0.007 * max_time  # Empirical scaling
         return duration > required_width
 
@@ -189,9 +187,10 @@ def plot_gantt_chart(schedule, title):
 def calculate_metrics(results, lower_bounds):
     """
     Calculate performance metrics including:
-    - Average makespan per class
+    - Number of optimal solutions found
     - Average relative gap to lower bounds
-    - Standard deviation
+    - Number of instances where algorithm is better
+    - Maximum gap to lower bound
     
     Args:
         results: List of dictionaries containing class_id, instance_id and makespan
@@ -217,12 +216,15 @@ def calculate_metrics(results, lower_bounds):
             lower_bound = lower_bounds[key]
             gap = (makespan - lower_bound) / lower_bound if lower_bound > 0 else float('inf')
             relative_gap = gap * 100  # as percentage
+            is_optimal = makespan == lower_bound
         else:
             relative_gap = None
+            is_optimal = False
             
         class_groups[class_id].append({
             'makespan': makespan,
-            'relative_gap': relative_gap
+            'relative_gap': relative_gap,
+            'is_optimal': is_optimal
         })
     
     # Calculate metrics
@@ -230,20 +232,19 @@ def calculate_metrics(results, lower_bounds):
     for class_id, records in class_groups.items():
         makespans = [r['makespan'] for r in records]
         gaps = [r['relative_gap'] for r in records if r['relative_gap'] is not None]
+        optimal_count = sum(1 for r in records if r['is_optimal'])
         
         metrics[class_id] = {
             'avg_makespan': np.mean(makespans),
-            'std_makespan': np.std(makespans),
-            'min_makespan': min(makespans),
-            'max_makespan': max(makespans),
+            'optimal_solutions': optimal_count,
+            'optimal_percentage': (optimal_count / len(records)) * 100 if records else 0,
             'avg_gap_percent': np.mean(gaps) if gaps else None,
-            'std_gap_percent': np.std(gaps) if gaps else None,
-            'min_gap_percent': min(gaps) if gaps else None,
             'max_gap_percent': max(gaps) if gaps else None,
             'num_instances': len(records)
         }
         
     return metrics
+
 
 def plot_comparison_chart(lpt_metrics, spt_metrics):
     """
@@ -302,7 +303,7 @@ def run_comparison_with_bounds(instances, lower_bounds, plot_instance_index=None
     spt_results = []
     
     for i, instance in enumerate(instances):
-        nb_jobs, nb_molds, class_id, instance_id = instance['header']
+        _, _, class_id, instance_id = instance['header']  # Ignore unused variables nb_jobs and nb_molds
         
         # Run LPT
         lpt_schedule, lpt_makespan = lpt_schedule_instance(instance)
@@ -372,7 +373,7 @@ try:
     instances = parse_instances("2machinesNmolds\instances A.txt")
     print(f"Loaded {len(instances)} instances")
     
-    lower_bounds = parse_lower_bounds("borneunf.txt")
+    lower_bounds = parse_lower_bounds("2machinesNmolds\\borneunf.txt")  # Fixed file path escape sequence
     print(f"Loaded {len(lower_bounds)} lower bounds")
     
     # Run comparison on all instances and plot the first one (index 0)
