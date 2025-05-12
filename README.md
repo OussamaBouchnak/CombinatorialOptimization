@@ -32,13 +32,6 @@ Experiments were conducted on **2100 instances** categorized by:
 
 ---
 
-## ⚡ GPU Acceleration (via Numba & CUDA)  
-- Parallel **makespan calculation**.  
-- Batch **neighborhood evaluation** for Tabu Search.  
-- Parallel **fitness evaluation** for Genetic Algorithm.  
-
----
-
 ## 📏 Evaluation Metrics  
 - **Average Gap (%)**: Relative deviation from the lower bound.  
 - **Optimal Solutions (%)**: Proportion of instances solved optimally.  
